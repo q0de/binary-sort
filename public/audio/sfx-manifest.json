@@ -1,0 +1,12 @@
+{
+  "enabled": false,
+  "provider": "elevenlabs",
+  "files": {
+    "deal": "/audio/card-deal.mp3",
+    "next": "/audio/card-next.mp3",
+    "commit": "/audio/card-commit.mp3",
+    "correct": "/audio/card-correct.mp3",
+    "wrong": "/audio/card-wrong.mp3",
+    "fallAway": "/audio/card-fall-away.mp3"
+  }
+}

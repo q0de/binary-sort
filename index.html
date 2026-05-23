@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#080914" />
+    <title>Binary Sort</title>
+  </head>
+  <body>
+    <main id="app" class="game" aria-label="Binary Sort arcade card game">
+      <section class="hud" aria-live="polite">
+        <div class="prompt">Sort the signal: circles left, angles right.</div>
+        <div class="stats">
+          <span>Score <strong id="score">0</strong>/12</span>
+          <span>Streak <strong id="streak">0</strong></span>
+          <span>Best <strong id="bestStreak">0</strong></span>
+        </div>
+      </section>
+
+      <section class="arena" aria-label="Card sorting area">
+        <div class="ambient ambient-left"></div>
+        <div class="ambient ambient-right"></div>
+        <div class="table-stage" aria-hidden="true"></div>
+        <div class="lane-ring lane-ring-left" aria-hidden="true"><span></span></div>
+        <div class="lane-ring lane-ring-right" aria-hidden="true"><span></span></div>
+        <div id="commitFlash" class="commit-flash" aria-hidden="true"></div>
+
+        <div class="bucket bucket-left" data-bucket="A" aria-label="Bucket A: circles">
+          <div class="bucket-beam"></div>
+          <div class="bucket-glow"></div>
+          <div class="bucket-label"><strong>A</strong><span>Circles</span></div>
+        </div>
+
+        <div class="bucket bucket-right" data-bucket="B" aria-label="Bucket B: angles">
+          <div class="bucket-beam"></div>
+          <div class="bucket-glow"></div>
+          <div class="bucket-label"><strong>B</strong><span>Angles</span></div>
+        </div>
+
+        <div id="stack" class="stack" aria-hidden="true"></div>
+        <div id="card" class="card" role="button" tabindex="0" aria-label="Drag this card left or right">
+          <div class="card-depth"></div>
+          <div class="drag-aura"></div>
+          <div class="card-face">
+            <div class="card-sheen"></div>
+            <div id="cardSymbol" class="symbol symbol-circle" aria-hidden="true"></div>
+            <div id="cardVariant" class="card-code">S-01</div>
+          </div>
+        </div>
+
+        <div id="outcome" class="outcome" aria-live="assertive"></div>
+      </section>
+
+      <section id="summary" class="summary" aria-hidden="true">
+        <div class="summary-panel">
+          <p class="summary-kicker">Round Complete</p>
+          <h1 id="summaryScore">0 / 12</h1>
+          <p id="summaryBest">Best streak 0</p>
+          <button id="playAgain" type="button">Play Again</button>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
