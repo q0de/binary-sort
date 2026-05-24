@@ -16,6 +16,12 @@ const BASE_DECK = [
   { id: "a-06", symbolFamily: "angle", correctBucket: "B", variant: "A-06" },
 ];
 
+const MAX_VISIBLE_STACK_CARDS = BASE_DECK.length;
+const STACK_BASE_Y = 72;
+const STACK_DRAW_Y = 50;
+const STACK_DEPTH_Y = 3.5;
+const STACK_SCALE_STEP = 0.012;
+
 const state = {
   deck: [],
   index: 0,
@@ -46,6 +52,7 @@ const summary = document.querySelector("#summary");
 const scoreEl = document.querySelector("#score");
 const streakEl = document.querySelector("#streak");
 const bestStreakEl = document.querySelector("#bestStreak");
+const cardStyleSelect = document.querySelector("#cardStyle");
 const summaryScore = document.querySelector("#summaryScore");
 const summaryBest = document.querySelector("#summaryBest");
 const playAgain = document.querySelector("#playAgain");
@@ -62,6 +69,12 @@ let audioContext;
 let audioLoadPromise;
 let audioAssetsEnabled = false;
 const audioBuffers = new Map();
+
+function applyCardStyle(style) {
+  const selectedStyle = style || "neon-glass";
+  document.querySelector("#app").dataset.cardStyle = selectedStyle;
+  localStorage.setItem("binary-sort-card-style", selectedStyle);
+}
 
 function shuffleConstrained(cards) {
   for (let attempt = 0; attempt < 80; attempt += 1) {
@@ -102,19 +115,41 @@ function startRound() {
 
 function buildStack() {
   stack.innerHTML = "";
-  for (let index = 0; index < 5; index += 1) {
+  for (let index = 0; index < MAX_VISIBLE_STACK_CARDS; index += 1) {
     const layer = document.createElement("div");
     layer.className = "stack-card";
+    layer.dataset.stackIndex = String(index);
     layer.style.setProperty("--i", index);
     stack.append(layer);
   }
+}
+
+function updateStackVisual(animated = true) {
+  const remainingAfterActive = Math.max(state.deck.length - state.index - 1, 0);
+  const layers = [...stack.children];
+  layers.forEach((layer, index) => {
+    const visible = index < remainingAfterActive;
+    const depth = remainingAfterActive - index - 1;
+    const vars = {
+      opacity: visible ? 1 : 0,
+      y: visible ? depth * STACK_DEPTH_Y + STACK_BASE_Y : STACK_BASE_Y + 28,
+      rotate: visible ? (depth - Math.min(remainingAfterActive, 7) / 2) * 1.4 : 0,
+      scale: visible ? 0.94 - Math.min(depth, 9) * STACK_SCALE_STEP : 0.88,
+    };
+
+    if (animated) {
+      gsap.to(layer, { ...vars, duration: prefersReducedMotion ? 0.12 : 0.24, ease: "power2.out" });
+    } else {
+      gsap.set(layer, vars);
+    }
+  });
 }
 
 function dealIn() {
   state.locked = true;
   const layers = [...stack.children];
   gsap.set(layers, { y: 220, opacity: 0, rotate: -12, scale: 0.92 });
-  gsap.set(card, { x: 0, y: 180, opacity: 0, rotate: 9, scale: 0.96, "--drag-power": 0, "--drag-hotspot": "84%" });
+  gsap.set(card, { x: 0, y: 180, opacity: 0, rotate: 9, rotateY: 0, scale: 0.96, transformPerspective: 900, "--drag-power": 0, "--drag-hotspot": "84%" });
 
   const timeline = gsap.timeline({
     defaults: { ease: "back.out(1.8)" },
@@ -122,10 +157,10 @@ function dealIn() {
   });
 
   timeline.to(layers, {
-    y: (index) => index * -7,
+    y: (index) => (MAX_VISIBLE_STACK_CARDS - index - 2) * STACK_DEPTH_Y + STACK_BASE_Y,
     opacity: 1,
-    rotate: (index) => (index - 2) * 2.2,
-    scale: 1,
+    rotate: (index) => (MAX_VISIBLE_STACK_CARDS - index - 5) * 1.2,
+    scale: (index) => 0.94 - Math.min(MAX_VISIBLE_STACK_CARDS - index - 2, 9) * STACK_SCALE_STEP,
     duration: prefersReducedMotion ? 0.18 : 0.48,
     stagger: prefersReducedMotion ? 0.02 : 0.08,
   });
@@ -153,11 +188,14 @@ function showCard(options = {}) {
   state.locked = true;
 
   if (options.entrance) {
+    card.classList.add("is-flipping-from-back");
     animateNextCardEntrance();
     return;
   }
 
-  gsap.set(card, { x: 0, y: 0, rotate: 0, scale: 1, opacity: 1, "--drag-power": 0, "--drag-hotspot": "84%" });
+  updateStackVisual(false);
+  card.classList.remove("is-flipping-from-back");
+  gsap.set(card, { x: 0, y: 0, rotate: 0, rotateY: 0, scale: 1, opacity: 1, transformPerspective: 900, "--drag-power": 0, "--drag-hotspot": "84%", "--drag-cyan": 0.5, "--drag-pink": 0.5 });
   liftActiveCard();
 }
 
@@ -201,17 +239,22 @@ function animateNextCardEntrance() {
   const entryRotate = Math.random() > 0.5 ? 4.5 : -4.5;
   gsap.set(card, {
     x: 0,
-    y: 78,
-    rotate: entryRotate,
-    scale: 0.92,
-    opacity: 0,
+    y: STACK_BASE_Y,
+    rotate: entryRotate * 0.35,
+    rotateY: 0,
+    scale: 0.94,
+    opacity: 1,
+    transformPerspective: 900,
     "--drag-power": 0,
     "--drag-hotspot": "84%",
+    "--drag-cyan": 0.5,
+    "--drag-pink": 0.5,
   });
 
   activeTimeline = gsap.timeline({
     defaults: { ease: "power2.out" },
     onComplete: () => {
+      card.classList.remove("is-flipping-from-back");
       state.locked = false;
       scheduleIdleNudge();
       scheduleShimmer();
@@ -220,33 +263,90 @@ function animateNextCardEntrance() {
 
   activeTimeline
     .to(layers, {
-      y: (index) => index * -7 - 7,
-      rotate: (index) => (index - 2) * 2.2 + 0.8,
+      y: (index) => {
+        const remainingAfterActive = Math.max(state.deck.length - state.index - 1, 0);
+        const depth = remainingAfterActive - index - 1;
+        return index < remainingAfterActive ? depth * STACK_DEPTH_Y + STACK_DRAW_Y : STACK_BASE_Y + 28;
+      },
+      rotate: (index) => {
+        const remainingAfterActive = Math.max(state.deck.length - state.index - 1, 0);
+        const depth = remainingAfterActive - index - 1;
+        return index < remainingAfterActive ? (depth - Math.min(remainingAfterActive, 7) / 2) * 1.4 + 0.8 : 0;
+      },
+      opacity: (index) => {
+        const remainingAfterActive = Math.max(state.deck.length - state.index - 1, 0);
+        return index < remainingAfterActive ? 1 : 0;
+      },
+      scale: (index) => {
+        const remainingAfterActive = Math.max(state.deck.length - state.index - 1, 0);
+        const depth = remainingAfterActive - index - 1;
+        return index < remainingAfterActive ? 0.94 - Math.min(depth, 9) * STACK_SCALE_STEP : 0.88;
+      },
       duration: prefersReducedMotion ? 0.08 : 0.12,
       stagger: prefersReducedMotion ? 0 : 0.012,
       ease: "power2.in",
     })
     .to(layers, {
-      y: (index) => index * -7,
-      rotate: (index) => (index - 2) * 2.2,
+      y: (index) => {
+        const remainingAfterActive = Math.max(state.deck.length - state.index - 1, 0);
+        const depth = remainingAfterActive - index - 1;
+        return index < remainingAfterActive ? depth * STACK_DEPTH_Y + STACK_BASE_Y : STACK_BASE_Y + 28;
+      },
+      rotate: (index) => {
+        const remainingAfterActive = Math.max(state.deck.length - state.index - 1, 0);
+        const depth = remainingAfterActive - index - 1;
+        return index < remainingAfterActive ? (depth - Math.min(remainingAfterActive, 7) / 2) * 1.4 : 0;
+      },
+      opacity: (index) => {
+        const remainingAfterActive = Math.max(state.deck.length - state.index - 1, 0);
+        return index < remainingAfterActive ? 1 : 0;
+      },
+      scale: (index) => {
+        const remainingAfterActive = Math.max(state.deck.length - state.index - 1, 0);
+        const depth = remainingAfterActive - index - 1;
+        return index < remainingAfterActive ? 0.94 - Math.min(depth, 9) * STACK_SCALE_STEP : 0.88;
+      },
       duration: prefersReducedMotion ? 0.12 : 0.2,
       stagger: prefersReducedMotion ? 0 : 0.016,
       ease: "back.out(2)",
     })
     .to(card, {
-      y: -14,
+      y: -34,
       rotate: entryRotate * -0.24,
-      scale: 1.035,
-      opacity: 1,
-      duration: prefersReducedMotion ? 0.16 : 0.34,
+      scale: 1.045,
+      duration: prefersReducedMotion ? 0.14 : 0.22,
       ease: "back.out(2.4)",
     }, prefersReducedMotion ? "-=0.06" : "-=0.13")
     .to(card, {
-      y: 0,
-      rotate: 0,
-      scale: 1,
+      y: -38,
+      rotate: entryRotate * -0.18,
+      scale: 1.055,
+      duration: prefersReducedMotion ? 0.04 : 0.1,
+      ease: "sine.inOut",
+    })
+    .to(card, {
+      rotateY: 90,
+      scale: 1.04,
+      duration: prefersReducedMotion ? 0.08 : 0.16,
+      ease: "power2.in",
+      onComplete: () => {
+        card.classList.remove("is-flipping-from-back");
+        gsap.set(card, { rotateY: -90 });
+      },
+    })
+    .to(card, {
+      rotateY: 0,
+      scale: 1.04,
       duration: prefersReducedMotion ? 0.1 : 0.18,
       ease: "power2.out",
+    })
+    .to(card, {
+      y: 0,
+      rotate: 0,
+      rotateY: 0,
+      scale: 1,
+      duration: prefersReducedMotion ? 0.12 : 0.22,
+      ease: "back.out(2)",
     });
 }
 
@@ -311,6 +411,8 @@ function onPointerDown(event) {
     y: -24,
     scale: 1.045,
     "--drag-power": 0.18,
+    "--drag-cyan": 0.5,
+    "--drag-pink": 0.5,
     duration: prefersReducedMotion ? 0.08 : 0.18,
     ease: "back.out(2.5)",
   });
@@ -346,6 +448,8 @@ function renderDrag(x, y) {
     scale: 1 + progress * 0.035,
     "--drag-power": progress,
     "--drag-hotspot": direction < 0 ? "16%" : "84%",
+    "--drag-cyan": direction < 0 ? 1 : 0,
+    "--drag-pink": direction > 0 ? 1 : 0,
   });
   setBucketProgress(bucket, progress);
 }
@@ -429,6 +533,8 @@ function resetCard() {
     rotate: 0,
     scale: 1,
     "--drag-power": 0,
+    "--drag-cyan": 0.5,
+    "--drag-pink": 0.5,
     duration: prefersReducedMotion ? 0.14 : 0.28,
     ease: "back.out(1.8)",
     onComplete: () => scheduleIdleNudge(),
@@ -573,6 +679,7 @@ function nextCard() {
   outcome.textContent = "";
 
   if (state.index >= state.deck.length) {
+    updateStackVisual(true);
     showSummary();
     return;
   }
@@ -693,5 +800,9 @@ card.addEventListener("pointerup", onPointerUp);
 card.addEventListener("pointercancel", onPointerCancel);
 card.addEventListener("keydown", onKeyDown);
 playAgain.addEventListener("click", startRound);
+cardStyleSelect.addEventListener("change", (event) => applyCardStyle(event.target.value));
 
+const savedCardStyle = localStorage.getItem("binary-sort-card-style") || "neon-glass";
+cardStyleSelect.value = savedCardStyle;
+applyCardStyle(savedCardStyle);
 startRound();

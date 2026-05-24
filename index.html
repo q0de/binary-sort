@@ -8,12 +8,32 @@
   </head>
   <body>
     <main id="app" class="game" aria-label="Binary Sort arcade card game">
+      <div class="atmosphere" aria-hidden="true">
+        <span class="particle p1"></span>
+        <span class="particle p2"></span>
+        <span class="particle p3"></span>
+        <span class="particle p4"></span>
+        <span class="particle p5"></span>
+        <span class="particle p6"></span>
+        <span class="light-sweep sweep-left"></span>
+        <span class="light-sweep sweep-right"></span>
+      </div>
       <section class="hud" aria-live="polite">
         <div class="prompt">Sort the signal: circles left, angles right.</div>
         <div class="stats">
           <span>Score <strong id="score">0</strong>/12</span>
           <span>Streak <strong id="streak">0</strong></span>
           <span>Best <strong id="bestStreak">0</strong></span>
+        </div>
+        <div class="style-picker">
+          <label class="visually-hidden" for="cardStyle">Card style</label>
+          <select id="cardStyle" aria-label="Card style">
+            <option value="neon-glass">Neon Glass</option>
+            <option value="prism-chrome">Prism Chrome</option>
+            <option value="carbon-felt">Carbon Felt</option>
+            <option value="aurora-foil">Aurora Foil</option>
+            <option value="arcade-candy">Arcade Candy</option>
+          </select>
         </div>
       </section>
 
@@ -41,6 +61,9 @@
         <div id="card" class="card" role="button" tabindex="0" aria-label="Drag this card left or right">
           <div class="card-depth"></div>
           <div class="drag-aura"></div>
+          <div class="card-back" aria-hidden="true">
+            <div class="card-back-mark"></div>
+          </div>
           <div class="card-face">
             <div class="card-sheen"></div>
             <div id="cardSymbol" class="symbol symbol-circle" aria-hidden="true"></div>
