@@ -18,6 +18,8 @@ const BASE_DECK = [
 
 const CARD_STYLE_DEFAULT = "aurora-foil";
 const CARD_STYLE_DEFAULT_VERSION = "aurora-foil-png-v1";
+const SPECIAL_CARD_COUNT = 1;
+const GLEAM_CARD_CHANCE = 0.38;
 const MAX_VISIBLE_STACK_CARDS = BASE_DECK.length;
 const STACK_BASE_Y = 72;
 const STACK_DRAW_Y = 50;
@@ -103,8 +105,34 @@ function hasLongRun(cards) {
   return false;
 }
 
+function buildRoundDeck() {
+  const deck = shuffleConstrained(BASE_DECK).map((cardData) => ({
+    ...cardData,
+    special: false,
+    gleam: Math.random() < GLEAM_CARD_CHANCE,
+  }));
+  const eligibleIndexes = deck.map((_, index) => index);
+
+  for (let count = 0; count < SPECIAL_CARD_COUNT && eligibleIndexes.length > 0; count += 1) {
+    const drawIndex = Math.floor(Math.random() * eligibleIndexes.length);
+    const [specialIndex] = eligibleIndexes.splice(drawIndex, 1);
+    deck[specialIndex] = {
+      ...deck[specialIndex],
+      gleam: true,
+      special: true,
+      variant: `${deck[specialIndex].variant}*`,
+    };
+  }
+
+  return deck;
+}
+
+function currentCardHasGleam() {
+  return Boolean(state.deck[state.index]?.gleam);
+}
+
 function startRound() {
-  state.deck = shuffleConstrained(BASE_DECK);
+  state.deck = buildRoundDeck();
   state.index = 0;
   state.score = 0;
   state.streak = 0;
@@ -188,7 +216,7 @@ function animateInitialCardReveal() {
     defaults: { ease: "power2.out" },
     onComplete: () => {
       card.classList.remove("is-flipping-from-back");
-      liftActiveCard();
+      liftActiveCard({ gleam: false });
     },
   });
 
@@ -199,6 +227,9 @@ function animateInitialCardReveal() {
       duration: prefersReducedMotion ? 0.12 : 0.2,
       ease: "back.out(2.2)",
     })
+    .call(() => {
+      if (currentCardHasGleam()) playLiftGleam();
+    })
     .to(card, {
       rotateY: 90,
       scale: 1.035,
@@ -207,7 +238,7 @@ function animateInitialCardReveal() {
       onComplete: () => {
         card.classList.remove("is-flipping-from-back");
         gsap.set(card, { rotateY: -90 });
-        playFlipGleam();
+        if (currentCardHasGleam()) playFlipGleam();
       },
     })
     .to(card, {
@@ -255,17 +286,18 @@ function renderCardContent(current) {
   symbol.className = `symbol symbol-${current.symbolFamily}`;
   cardVariant.textContent = current.variant;
   card.dataset.family = current.symbolFamily;
-  card.setAttribute("aria-label", `${current.symbolFamily} card. Drag left for circles or right for angles.`);
+  card.classList.toggle("is-special", Boolean(current.special));
+  card.setAttribute("aria-label", `${current.special ? "Special " : ""}${current.symbolFamily} card. Drag left for circles or right for angles.`);
 }
 
-function liftActiveCard() {
+function liftActiveCard({ gleam = true } = {}) {
   state.locked = false;
   stopShimmer();
 
   activeTimeline = gsap.timeline({
     onComplete: () => {
       scheduleIdleNudge();
-      scheduleShimmer();
+      if (gleam && currentCardHasGleam()) playLiftGleam();
     },
   });
   activeTimeline.fromTo(card, {
@@ -313,7 +345,6 @@ function animateNextCardEntrance() {
       card.classList.remove("is-flipping-from-back");
       state.locked = false;
       scheduleIdleNudge();
-      scheduleShimmer();
     },
   });
 
@@ -380,6 +411,9 @@ function animateNextCardEntrance() {
       duration: prefersReducedMotion ? 0.04 : 0.1,
       ease: "sine.inOut",
     })
+    .call(() => {
+      if (currentCardHasGleam()) playLiftGleam();
+    })
     .to(card, {
       rotateY: 90,
       scale: 1.04,
@@ -388,7 +422,7 @@ function animateNextCardEntrance() {
       onComplete: () => {
         card.classList.remove("is-flipping-from-back");
         gsap.set(card, { rotateY: -90 });
-        playFlipGleam();
+        if (currentCardHasGleam()) playFlipGleam();
       },
     })
     .to(card, {
@@ -416,25 +450,21 @@ function scheduleIdleNudge() {
     .to(card, { x: 0, y: 0, rotate: 0, duration: 0.26, ease: "back.out(1.8)" });
 }
 
-function scheduleShimmer() {
+function playLiftGleam() {
   shimmerTween?.kill();
   const sheen = card.querySelector(".card-sheen");
-  gsap.set(sheen, { xPercent: -125, opacity: 0 });
+  gsap.set(sheen, { xPercent: -60, opacity: 0 });
 
-  shimmerTween = gsap.timeline({
-    delay: prefersReducedMotion ? 4.5 : 1.1 + Math.random() * 1.2,
-    repeat: -1,
-    repeatDelay: prefersReducedMotion ? 6 : 2.1 + Math.random() * 1.6,
-  });
+  shimmerTween = gsap.timeline();
   shimmerTween
     .to(sheen, {
-      opacity: prefersReducedMotion ? 0.28 : 0.78,
+      opacity: prefersReducedMotion ? 0.26 : 0.72,
       duration: prefersReducedMotion ? 0.08 : 0.05,
       ease: "power1.out",
     })
     .to(sheen, {
-      xPercent: 125,
-      duration: prefersReducedMotion ? 0.48 : 0.36,
+      xPercent: 60,
+      duration: prefersReducedMotion ? 0.54 : 0.48,
       ease: "power2.inOut",
     }, "<")
     .to(sheen, {
@@ -442,7 +472,10 @@ function scheduleShimmer() {
       duration: prefersReducedMotion ? 0.12 : 0.08,
       ease: "power1.out",
     }, "-=0.08")
-    .set(sheen, { xPercent: -125 });
+    .set(sheen, { xPercent: -60 })
+    .call(() => {
+      shimmerTween = null;
+    });
 }
 
 function playFlipGleam() {
@@ -451,19 +484,19 @@ function playFlipGleam() {
 
   gsap.killTweensOf(sheen);
   gsap.fromTo(sheen, {
-    xPercent: -145,
+    xPercent: -64,
     opacity: 0,
   }, {
-    xPercent: 118,
+    xPercent: 64,
     opacity: prefersReducedMotion ? 0.34 : 0.9,
-    duration: prefersReducedMotion ? 0.18 : 0.34,
+    duration: prefersReducedMotion ? 0.3 : 0.44,
     ease: "power2.out",
     onComplete: () => {
       gsap.to(sheen, {
         opacity: 0,
         duration: prefersReducedMotion ? 0.08 : 0.14,
         ease: "power1.out",
-        onComplete: () => gsap.set(sheen, { xPercent: -125 }),
+        onComplete: () => gsap.set(sheen, { xPercent: -60 }),
       });
     },
   });
@@ -473,7 +506,7 @@ function stopShimmer() {
   shimmerTween?.kill();
   shimmerTween = null;
   const sheen = card.querySelector(".card-sheen");
-  if (sheen) gsap.set(sheen, { xPercent: -125, opacity: 0 });
+  if (sheen) gsap.set(sheen, { xPercent: -60, opacity: 0 });
 }
 
 function onPointerDown(event) {
@@ -640,10 +673,7 @@ function resetCard() {
     "--drag-pink": 0.5,
     duration: prefersReducedMotion ? 0.14 : 0.28,
     ease: "back.out(1.8)",
-    onComplete: () => {
-      scheduleIdleNudge();
-      scheduleShimmer();
-    },
+    onComplete: () => scheduleIdleNudge(),
   });
 }
 
@@ -659,6 +689,10 @@ function commitChoice(chosenBucket) {
   const correct = chosenBucket === current.correctBucket;
   if (correct) {
     state.score += 1;
+    if (current.special) {
+      playGameSound("correct", { frequency: 880, duration: 0.09, volume: 0.09 });
+      vibrate([18, 24, 18]);
+    }
     state.streak += 1;
     state.bestStreak = Math.max(state.bestStreak, state.streak);
   } else {
@@ -783,6 +817,7 @@ function pulseCommitFlash(bucket) {
 function nextCard() {
   state.index += 1;
   clearBucketState();
+  card.classList.remove("is-special");
   outcome.className = "outcome";
   outcome.removeAttribute("aria-label");
   outcomeSprite.removeAttribute("src");

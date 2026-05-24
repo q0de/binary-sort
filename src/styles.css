@@ -561,7 +561,7 @@ select {
   inset: 0;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 16px;
+  border-radius: clamp(24px, 7vw, 32px);
   background:
     radial-gradient(circle at 28% 20%, rgba(255, 255, 255, 0.28), transparent 12%),
     radial-gradient(circle at 75% 30%, rgba(255, 61, 170, 0.34), transparent 18%),
@@ -587,7 +587,7 @@ select {
 .stack-card::before {
   inset: 8px;
   border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 12px;
+  border-radius: clamp(18px, 5.4vw, 25px);
 }
 
 .stack-card::after {
@@ -615,7 +615,7 @@ select {
   width: min(72vw, 320px);
   aspect-ratio: 2.5 / 3.5;
   border: 0;
-  border-radius: 16px;
+  border-radius: clamp(24px, 7vw, 32px);
   touch-action: none;
   transform: translate(-50%, -50%);
   transform-origin: center;
@@ -653,6 +653,7 @@ select {
 
 .card-depth,
 .drag-aura,
+.special-aura,
 .card-back,
 .card-face {
   position: absolute;
@@ -729,11 +730,101 @@ select {
   pointer-events: none;
 }
 
+.special-aura {
+  z-index: 1;
+  overflow: visible;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.special-aura::before {
+  position: absolute;
+  inset: -8%;
+  content: "";
+  border-radius: clamp(30px, 9vw, 42px);
+  background:
+    radial-gradient(circle at 20% 18%, rgba(255, 255, 255, 0.7), transparent 10%),
+    radial-gradient(circle at 80% 28%, rgba(255, 76, 190, 0.54), transparent 22%),
+    radial-gradient(circle at 28% 82%, rgba(48, 230, 255, 0.58), transparent 24%),
+    conic-gradient(from 120deg, rgba(255, 255, 255, 0), rgba(75, 234, 255, 0.44), rgba(255, 80, 190, 0.42), rgba(255, 220, 132, 0.34), rgba(255, 255, 255, 0));
+  filter: blur(18px);
+  mix-blend-mode: screen;
+  animation: specialAuraPulse 1.5s ease-in-out infinite;
+}
+
+.special-aura span {
+  position: absolute;
+  width: 7px;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 0 10px rgba(255, 255, 255, 0.95),
+    0 0 18px rgba(51, 225, 255, 0.74),
+    0 0 28px rgba(255, 76, 190, 0.58);
+  animation: specialParticleFloat 1.9s ease-in-out infinite;
+}
+
+.special-aura span:nth-child(1) { top: -7%; left: 16%; animation-delay: 0s; }
+.special-aura span:nth-child(2) { top: 7%; right: -5%; animation-delay: -0.35s; }
+.special-aura span:nth-child(3) { top: 38%; right: -8%; animation-delay: -0.72s; }
+.special-aura span:nth-child(4) { right: 8%; bottom: -8%; animation-delay: -1.05s; }
+.special-aura span:nth-child(5) { left: 19%; bottom: -7%; animation-delay: -1.32s; }
+.special-aura span:nth-child(6) { top: 52%; left: -8%; animation-delay: -1.62s; }
+.special-aura span:nth-child(7) { top: 22%; left: -5%; animation-delay: -0.96s; }
+.special-aura span:nth-child(8) { top: -6%; right: 22%; animation-delay: -1.46s; }
+
+.card.is-special {
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.94),
+    0 0 0 7px rgba(142, 243, 255, 0.32),
+    0 0 30px rgba(255, 255, 255, 0.35),
+    0 0 58px rgba(31, 200, 255, 0.4),
+    0 0 76px rgba(255, 61, 170, 0.28);
+}
+
+.card.is-special .special-aura {
+  opacity: 1;
+}
+
+.card.is-special .card-code {
+  color: #fff;
+  text-shadow:
+    0 0 12px rgba(255, 255, 255, 0.72),
+    0 0 22px rgba(255, 76, 190, 0.6);
+}
+
 .card-depth {
   transform: translate(0, 9px);
   background: #070812;
   filter: blur(0.3px);
   opacity: 0.75;
+}
+
+@keyframes specialAuraPulse {
+  0%,
+  100% {
+    opacity: 0.58;
+    transform: scale(0.98) rotate(0deg);
+  }
+
+  50% {
+    opacity: 0.98;
+    transform: scale(1.04) rotate(5deg);
+  }
+}
+
+@keyframes specialParticleFloat {
+  0%,
+  100% {
+    opacity: 0.32;
+    transform: translate3d(0, 4px, 0) scale(0.72);
+  }
+
+  45% {
+    opacity: 1;
+    transform: translate3d(5px, -8px, 0) scale(1.18);
+  }
 }
 
 .card-face {
@@ -773,10 +864,10 @@ select {
 
 .card-sheen {
   position: absolute;
-  inset: -46% -82%;
+  inset: -48% -150%;
   background:
-    linear-gradient(112deg, transparent 43%, rgba(255, 255, 255, 0.1) 47%, rgba(255, 255, 255, 0.92) 49.5%, rgba(142, 243, 255, 0.34) 51.5%, transparent 57%),
-    linear-gradient(112deg, transparent 50%, rgba(255, 79, 176, 0.24) 52%, transparent 58%);
+    linear-gradient(112deg, transparent 41%, rgba(255, 255, 255, 0.12) 46%, rgba(255, 255, 255, 0.94) 50%, rgba(142, 243, 255, 0.38) 53%, transparent 60%),
+    linear-gradient(112deg, transparent 47%, rgba(255, 79, 176, 0.28) 52%, transparent 61%);
   transform: translateX(-125%) rotate(10deg);
   mix-blend-mode: screen;
   opacity: 0;
