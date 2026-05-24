@@ -16,6 +16,8 @@ const BASE_DECK = [
   { id: "a-06", symbolFamily: "angle", correctBucket: "B", variant: "A-06" },
 ];
 
+const CARD_STYLE_DEFAULT = "aurora-foil";
+const CARD_STYLE_DEFAULT_VERSION = "aurora-foil-png-v1";
 const MAX_VISIBLE_STACK_CARDS = BASE_DECK.length;
 const STACK_BASE_Y = 72;
 const STACK_DRAW_Y = 50;
@@ -48,6 +50,7 @@ const stack = document.querySelector("#stack");
 const symbol = document.querySelector("#cardSymbol");
 const cardVariant = document.querySelector("#cardVariant");
 const outcome = document.querySelector("#outcome");
+const outcomeSprite = document.querySelector("#outcomeSprite");
 const summary = document.querySelector("#summary");
 const scoreEl = document.querySelector("#score");
 const streakEl = document.querySelector("#streak");
@@ -71,7 +74,7 @@ let audioAssetsEnabled = false;
 const audioBuffers = new Map();
 
 function applyCardStyle(style) {
-  const selectedStyle = style || "neon-glass";
+  const selectedStyle = style || CARD_STYLE_DEFAULT;
   document.querySelector("#app").dataset.cardStyle = selectedStyle;
   localStorage.setItem("binary-sort-card-style", selectedStyle);
 }
@@ -147,13 +150,17 @@ function updateStackVisual(animated = true) {
 
 function dealIn() {
   state.locked = true;
+  stopShimmer();
+  const current = state.deck[state.index];
   const layers = [...stack.children];
+  renderCardContent(current);
   gsap.set(layers, { y: 220, opacity: 0, rotate: -12, scale: 0.92 });
-  gsap.set(card, { x: 0, y: 180, opacity: 0, rotate: 9, rotateY: 0, scale: 0.96, transformPerspective: 900, "--drag-power": 0, "--drag-hotspot": "84%" });
+  card.classList.add("is-flipping-from-back");
+  gsap.set(card, { x: 0, y: 180, opacity: 0, rotate: 9, rotateY: 0, scale: 0.96, transformPerspective: 900, "--drag-power": 0, "--drag-hotspot": "84%", "--drag-cyan": 0.5, "--drag-pink": 0.5 });
 
   const timeline = gsap.timeline({
     defaults: { ease: "back.out(1.8)" },
-    onComplete: () => showCard(),
+    onComplete: () => animateInitialCardReveal(),
   });
 
   timeline.to(layers, {
@@ -173,6 +180,52 @@ function dealIn() {
   }, "-=0.12");
 }
 
+function animateInitialCardReveal() {
+  stopShimmer();
+  updateStackVisual(false);
+
+  activeTimeline = gsap.timeline({
+    defaults: { ease: "power2.out" },
+    onComplete: () => {
+      card.classList.remove("is-flipping-from-back");
+      liftActiveCard();
+    },
+  });
+
+  activeTimeline
+    .to(card, {
+      y: -24,
+      scale: 1.04,
+      duration: prefersReducedMotion ? 0.12 : 0.2,
+      ease: "back.out(2.2)",
+    })
+    .to(card, {
+      rotateY: 90,
+      scale: 1.035,
+      duration: prefersReducedMotion ? 0.08 : 0.14,
+      ease: "power2.in",
+      onComplete: () => {
+        card.classList.remove("is-flipping-from-back");
+        gsap.set(card, { rotateY: -90 });
+        playFlipGleam();
+      },
+    })
+    .to(card, {
+      rotateY: 0,
+      scale: 1.035,
+      duration: prefersReducedMotion ? 0.1 : 0.17,
+      ease: "power2.out",
+    })
+    .to(card, {
+      y: 0,
+      rotate: 0,
+      rotateY: 0,
+      scale: 1,
+      duration: prefersReducedMotion ? 0.1 : 0.18,
+      ease: "back.out(2)",
+    });
+}
+
 function showCard(options = {}) {
   const current = state.deck[state.index];
   if (!current) {
@@ -182,8 +235,7 @@ function showCard(options = {}) {
 
   activeTimeline?.kill();
   clearBucketState();
-  outcome.textContent = "";
-  outcome.className = "outcome";
+  resetOutcome();
   renderCardContent(current);
   state.locked = true;
 
@@ -208,8 +260,14 @@ function renderCardContent(current) {
 
 function liftActiveCard() {
   state.locked = false;
+  stopShimmer();
 
-  activeTimeline = gsap.timeline();
+  activeTimeline = gsap.timeline({
+    onComplete: () => {
+      scheduleIdleNudge();
+      scheduleShimmer();
+    },
+  });
   activeTimeline.fromTo(card, {
     y: 22,
     rotate: -2,
@@ -226,12 +284,10 @@ function liftActiveCard() {
     duration: prefersReducedMotion ? 0.12 : 0.22,
     ease: "power2.out",
   });
-  scheduleIdleNudge();
-  scheduleShimmer();
 }
 
 function animateNextCardEntrance() {
-  shimmerTween?.kill();
+  stopShimmer();
   idleTween?.kill();
   playGameSound("next", { frequency: 330, duration: 0.045, volume: 0.055 });
 
@@ -332,6 +388,7 @@ function animateNextCardEntrance() {
       onComplete: () => {
         card.classList.remove("is-flipping-from-back");
         gsap.set(card, { rotateY: -90 });
+        playFlipGleam();
       },
     })
     .to(card, {
@@ -388,12 +445,43 @@ function scheduleShimmer() {
     .set(sheen, { xPercent: -125 });
 }
 
+function playFlipGleam() {
+  const sheen = card.querySelector(".card-sheen");
+  if (!sheen) return;
+
+  gsap.killTweensOf(sheen);
+  gsap.fromTo(sheen, {
+    xPercent: -145,
+    opacity: 0,
+  }, {
+    xPercent: 118,
+    opacity: prefersReducedMotion ? 0.34 : 0.9,
+    duration: prefersReducedMotion ? 0.18 : 0.34,
+    ease: "power2.out",
+    onComplete: () => {
+      gsap.to(sheen, {
+        opacity: 0,
+        duration: prefersReducedMotion ? 0.08 : 0.14,
+        ease: "power1.out",
+        onComplete: () => gsap.set(sheen, { xPercent: -125 }),
+      });
+    },
+  });
+}
+
+function stopShimmer() {
+  shimmerTween?.kill();
+  shimmerTween = null;
+  const sheen = card.querySelector(".card-sheen");
+  if (sheen) gsap.set(sheen, { xPercent: -125, opacity: 0 });
+}
+
 function onPointerDown(event) {
   if (state.locked || state.dragging) return;
   unlockAudio();
   idleTween?.kill();
   activeTimeline?.kill();
-  shimmerTween?.pause();
+  stopShimmer();
 
   state.dragging = true;
   state.drag = {
@@ -467,22 +555,37 @@ function onPointerCancel(event) {
 function onKeyDown(event) {
   if (state.locked || state.dragging) return;
   if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+  if (event.target?.matches?.("input, textarea, select, button")) return;
 
   event.preventDefault();
   unlockAudio();
+  state.locked = true;
   idleTween?.kill();
-  shimmerTween?.pause();
+  activeTimeline?.kill();
+  stopShimmer();
   const bucket = event.key === "ArrowLeft" ? "A" : "B";
-  setBucketProgress(bucket, 1);
-  gsap.to(card, {
-    x: bucket === "A" ? -72 : 72,
-    y: -18,
-    rotate: bucket === "A" ? -8 : 8,
-    scale: 1.04,
-    duration: prefersReducedMotion ? 0.06 : 0.12,
-    ease: "power2.out",
-    onComplete: () => commitChoice(bucket),
-  });
+  const direction = bucket === "A" ? -1 : 1;
+  const shoveDistance = Math.min(window.innerWidth * 0.22, card.getBoundingClientRect().width * 0.46);
+
+  card.classList.add("is-dragging");
+  renderDrag(direction * shoveDistance, -18);
+  gsap.timeline()
+    .to(card, {
+      x: direction * Math.min(window.innerWidth * 0.34, card.getBoundingClientRect().width * 0.72),
+      y: -30,
+      rotate: direction * 11,
+      scale: 1.055,
+      "--drag-power": 1,
+      "--drag-hotspot": direction < 0 ? "16%" : "84%",
+      "--drag-cyan": direction < 0 ? 1 : 0,
+      "--drag-pink": direction > 0 ? 1 : 0,
+      duration: prefersReducedMotion ? 0.08 : 0.16,
+      ease: "back.out(2.2)",
+    })
+    .call(() => {
+      card.classList.remove("is-dragging");
+      commitChoice(bucket);
+    });
 }
 
 function finishDrag(event, canceled) {
@@ -537,14 +640,17 @@ function resetCard() {
     "--drag-pink": 0.5,
     duration: prefersReducedMotion ? 0.14 : 0.28,
     ease: "back.out(1.8)",
-    onComplete: () => scheduleIdleNudge(),
+    onComplete: () => {
+      scheduleIdleNudge();
+      scheduleShimmer();
+    },
   });
 }
 
 function commitChoice(chosenBucket) {
   state.locked = true;
   idleTween?.kill();
-  shimmerTween?.kill();
+  stopShimmer();
   clearBucketState();
   pulseCommitFlash(chosenBucket);
   playGameSound("commit", { frequency: 420, duration: 0.045, volume: 0.045 });
@@ -563,18 +669,20 @@ function commitChoice(chosenBucket) {
   if (correct) {
     playGameSound("correct", { frequency: 660, duration: 0.08, volume: 0.08 });
     vibrate(25);
-    showOutcome("✓", "correct");
+    showOutcome("correct");
     flyToBucket(chosenBucket, true);
   } else {
     playGameSound("wrong", { frequency: 180, duration: 0.12, volume: 0.075 });
     vibrate([35, 40, 25]);
-    showOutcome("×", "wrong");
+    showOutcome("wrong");
     wrongFallAway(chosenBucket, current.correctBucket);
   }
 }
 
-function showOutcome(mark, kind) {
-  outcome.textContent = mark;
+function showOutcome(kind) {
+  outcome.setAttribute("aria-label", kind === "correct" ? "Correct" : "Wrong");
+  outcomeSprite.src = kind === "correct" ? "/images/outcomes/outcome-check-fit.png" : "/images/outcomes/outcome-x-fit.png";
+  outcomeSprite.alt = kind === "correct" ? "Correct" : "Wrong";
   outcome.className = `outcome is-visible is-${kind}`;
   gsap.killTweensOf(outcome);
   gsap.fromTo(outcome, {
@@ -676,7 +784,9 @@ function nextCard() {
   state.index += 1;
   clearBucketState();
   outcome.className = "outcome";
-  outcome.textContent = "";
+  outcome.removeAttribute("aria-label");
+  outcomeSprite.removeAttribute("src");
+  outcomeSprite.alt = "";
 
   if (state.index >= state.deck.length) {
     updateStackVisual(true);
@@ -687,10 +797,17 @@ function nextCard() {
   showCard({ entrance: true });
 }
 
+function resetOutcome() {
+  outcome.className = "outcome";
+  outcome.removeAttribute("aria-label");
+  outcomeSprite.removeAttribute("src");
+  outcomeSprite.alt = "";
+}
+
 function showSummary() {
   state.locked = true;
   idleTween?.kill();
-  shimmerTween?.kill();
+  stopShimmer();
   summaryScore.textContent = `${state.score} / ${state.deck.length}`;
   summaryBest.textContent = `Best streak ${state.bestStreak}`;
   summary.setAttribute("aria-hidden", "false");
@@ -798,11 +915,15 @@ card.addEventListener("pointerdown", onPointerDown);
 card.addEventListener("pointermove", onPointerMove);
 card.addEventListener("pointerup", onPointerUp);
 card.addEventListener("pointercancel", onPointerCancel);
-card.addEventListener("keydown", onKeyDown);
+window.addEventListener("keydown", onKeyDown);
 playAgain.addEventListener("click", startRound);
 cardStyleSelect.addEventListener("change", (event) => applyCardStyle(event.target.value));
 
-const savedCardStyle = localStorage.getItem("binary-sort-card-style") || "neon-glass";
+const savedDefaultVersion = localStorage.getItem("binary-sort-card-style-default-version");
+const savedCardStyle = savedDefaultVersion === CARD_STYLE_DEFAULT_VERSION
+  ? localStorage.getItem("binary-sort-card-style") || CARD_STYLE_DEFAULT
+  : CARD_STYLE_DEFAULT;
+localStorage.setItem("binary-sort-card-style-default-version", CARD_STYLE_DEFAULT_VERSION);
 cardStyleSelect.value = savedCardStyle;
 applyCardStyle(savedCardStyle);
 startRound();

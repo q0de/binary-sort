@@ -622,9 +622,15 @@ select {
   transform-style: preserve-3d;
   cursor: grab;
   outline: none;
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.78),
+    0 0 0 6px rgba(142, 243, 255, 0.22),
+    0 0 24px rgba(255, 255, 255, 0.22),
+    0 0 42px rgba(31, 200, 255, 0.18);
   user-select: none;
   -webkit-user-select: none;
   will-change: transform, opacity;
+  transition: box-shadow 140ms ease;
 }
 
 .card:focus-visible {
@@ -633,6 +639,12 @@ select {
 
 .card.is-dragging {
   cursor: grabbing;
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.95),
+    0 0 0 7px rgba(255, 255, 255, calc(0.18 + var(--drag-power) * 0.18)),
+    0 0 28px rgba(255, 255, 255, calc(0.24 + var(--drag-power) * 0.28)),
+    0 0 54px rgba(31, 200, 255, calc(0.18 + var(--drag-power) * var(--drag-cyan) * 0.32)),
+    0 0 54px rgba(255, 61, 170, calc(var(--drag-power) * var(--drag-pink) * 0.32));
   filter:
     drop-shadow(0 0 calc(10px + var(--drag-power) * 16px) rgba(255, 255, 255, calc(var(--drag-power) * 0.18)))
     drop-shadow(calc((var(--drag-pink) - var(--drag-cyan)) * 8px) 0 calc(18px + var(--drag-power) * 26px) rgba(255, 61, 170, calc(var(--drag-power) * var(--drag-pink) * 0.52)))
@@ -774,6 +786,7 @@ select {
 
 .symbol {
   position: relative;
+  z-index: 2;
   width: 42%;
   aspect-ratio: 1;
   filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.35));
@@ -808,6 +821,7 @@ select {
 
 .card-code {
   position: absolute;
+  z-index: 2;
   right: 18px;
   bottom: 18px;
   color: rgba(255, 255, 255, 0.72);
@@ -865,22 +879,51 @@ select {
 }
 
 .game[data-card-style="aurora-foil"] .card-face {
-  background:
-    radial-gradient(circle at 23% 17%, rgba(255, 255, 255, 0.62), transparent 9%),
-    radial-gradient(circle at 76% 20%, rgba(255, 93, 180, 0.45), transparent 18%),
-    radial-gradient(circle at 36% 78%, rgba(95, 245, 208, 0.34), transparent 22%),
-    linear-gradient(120deg, rgba(93, 245, 208, 0.18), transparent 22%, rgba(255, 91, 188, 0.2) 48%, transparent 66%, rgba(255, 218, 128, 0.2)),
-    linear-gradient(145deg, rgba(245, 255, 250, 0.2), rgba(54, 28, 78, 0.36) 40%, rgba(8, 12, 24, 0.84) 78%),
-    #101529;
+  --aurora-card-image: url("/images/cards/card-aurora-foil-shell-fit.png");
+  overflow: hidden;
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
 }
 
-.game[data-card-style="aurora-foil"] .card-back,
+.game[data-card-style="aurora-foil"] .card-face::before {
+  inset: 0;
+  z-index: 0;
+  border: 0;
+  border-radius: inherit;
+  background: var(--aurora-card-image) center / 100% 100% no-repeat;
+}
+
+.game[data-card-style="aurora-foil"] .card-depth {
+  opacity: 0.24;
+}
+
+.game[data-card-style="aurora-foil"] .card-back {
+  --aurora-card-back-image: url("/images/cards/card-aurora-foil-back-fit.png");
+  border-color: transparent;
+  background: var(--aurora-card-back-image) center / 100% 100% no-repeat;
+  box-shadow: none;
+}
+
+.game[data-card-style="aurora-foil"] .card-back::before,
+.game[data-card-style="aurora-foil"] .card-back-mark {
+  display: none;
+}
+
+.game[data-card-style="aurora-foil"] .card-sheen {
+  z-index: 1;
+}
+
 .game[data-card-style="aurora-foil"] .stack-card {
-  background:
-    radial-gradient(circle at 24% 18%, rgba(255, 255, 255, 0.3), transparent 12%),
-    linear-gradient(125deg, rgba(93, 245, 208, 0.2), transparent 26%, rgba(255, 91, 188, 0.28) 54%, transparent 74%, rgba(255, 218, 128, 0.18)),
-    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.075) 0 2px, transparent 2px 13px),
-    linear-gradient(145deg, #1a2438, #0a0d1c 64%, #211830);
+  --aurora-card-back-image: url("/images/cards/card-aurora-foil-back-fit.png");
+  border-color: transparent;
+  background: var(--aurora-card-back-image) center / 100% 100% no-repeat;
+  box-shadow: none;
+}
+
+.game[data-card-style="aurora-foil"] .stack-card::before,
+.game[data-card-style="aurora-foil"] .stack-card::after {
+  display: none;
 }
 
 .game[data-card-style="arcade-candy"] .card-face {
@@ -916,16 +959,20 @@ select {
   z-index: 4;
   display: grid;
   place-items: center;
-  width: 86px;
+  width: 116px;
   aspect-ratio: 1;
-  border-radius: 50%;
-  color: white;
-  font-size: 4.2rem;
-  font-weight: 900;
   opacity: 0;
   transform: translate(-50%, -50%);
   pointer-events: none;
-  text-shadow: 0 0 20px currentColor;
+  filter: drop-shadow(0 0 22px rgba(255, 255, 255, 0.34));
+}
+
+.outcome-sprite {
+  display: block;
+  width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  pointer-events: none;
 }
 
 .outcome.is-visible {
@@ -933,11 +980,15 @@ select {
 }
 
 .outcome.is-correct {
-  color: #63ffba;
+  filter:
+    drop-shadow(0 0 18px rgba(114, 255, 202, 0.64))
+    drop-shadow(0 0 34px rgba(31, 200, 255, 0.34));
 }
 
 .outcome.is-wrong {
-  color: #ff4d70;
+  filter:
+    drop-shadow(0 0 18px rgba(255, 72, 148, 0.68))
+    drop-shadow(0 0 34px rgba(31, 200, 255, 0.22));
 }
 
 .summary {

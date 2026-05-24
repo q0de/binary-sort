@@ -58,7 +58,7 @@
         </div>
 
         <div id="stack" class="stack" aria-hidden="true"></div>
-        <div id="card" class="card" role="button" tabindex="0" aria-label="Drag this card left or right">
+        <div id="card" class="card is-flipping-from-back" role="button" tabindex="0" aria-label="Drag this card left or right">
           <div class="card-depth"></div>
           <div class="drag-aura"></div>
           <div class="card-back" aria-hidden="true">
@@ -71,7 +71,9 @@
           </div>
         </div>
 
-        <div id="outcome" class="outcome" aria-live="assertive"></div>
+        <div id="outcome" class="outcome" aria-live="assertive">
+          <img id="outcomeSprite" class="outcome-sprite" alt="" aria-hidden="true" />
+        </div>
       </section>
 
       <section id="summary" class="summary" aria-hidden="true">
