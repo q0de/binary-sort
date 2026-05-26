@@ -913,11 +913,12 @@ select {
 .card-code {
   position: absolute;
   z-index: 2;
-  right: 30px;
-  bottom: 32px;
+  right: 46px;
+  bottom: 46px;
   color: rgba(255, 255, 255, 0.72);
   font-size: 0.78rem;
   font-weight: 900;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
 }
 
 .game[data-card-style="prism-chrome"] .card-face {
