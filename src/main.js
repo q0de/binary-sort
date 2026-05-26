@@ -26,6 +26,8 @@ const STACK_BASE_Y = 72;
 const STACK_DRAW_Y = 50;
 const STACK_DEPTH_Y = 3.5;
 const STACK_SCALE_STEP = 0.012;
+const SPARK_COUNT = 18;
+const REDUCED_SPARK_COUNT = 6;
 
 const state = {
   deck: [],
@@ -63,6 +65,7 @@ const summaryScore = document.querySelector("#summaryScore");
 const summaryBest = document.querySelector("#summaryBest");
 const playAgain = document.querySelector("#playAgain");
 const commitFlash = document.querySelector("#commitFlash");
+const sparkBurst = document.querySelector("#sparkBurst");
 const buckets = {
   A: document.querySelector('[data-bucket="A"]'),
   B: document.querySelector('[data-bucket="B"]'),
@@ -71,6 +74,7 @@ const buckets = {
 let idleTween;
 let activeTimeline;
 let shimmerTween;
+let sparkTimeline;
 let audioContext;
 let audioLoadPromise;
 let audioAssetsEnabled = false;
@@ -711,6 +715,7 @@ function commitChoice(chosenBucket) {
     playGameSound("correct", { frequency: 660, duration: 0.08, volume: 0.08 });
     vibrate(25);
     showOutcome("correct");
+    playSparkBurst(chosenBucket);
     flyToBucket(chosenBucket, true);
   } else {
     playGameSound("wrong", { frequency: 180, duration: 0.12, volume: 0.075 });
@@ -804,6 +809,73 @@ function wrongFallAway(chosenBucket, correctBucket) {
     duration: prefersReducedMotion ? 0.24 : 0.5,
     ease: "power3.in",
   }, prefersReducedMotion ? "+=0.02" : "+=0.1");
+}
+
+function playSparkBurst(bucket) {
+  sparkTimeline?.kill();
+  sparkBurst.replaceChildren();
+
+  const isLeft = bucket === "A";
+  const count = prefersReducedMotion ? REDUCED_SPARK_COUNT : SPARK_COUNT;
+  const origin = isLeft
+    ? { x: "15%", y: "82%" }
+    : { x: "86%", y: "22%" };
+  const colorClass = isLeft ? "from-left" : "from-right";
+  const direction = isLeft ? 1 : -1;
+
+  sparkBurst.className = `spark-burst ${colorClass}`;
+  sparkTimeline = gsap.timeline({
+    onComplete: () => {
+      sparkBurst.replaceChildren();
+      sparkTimeline = null;
+    },
+  });
+
+  for (let index = 0; index < count; index += 1) {
+    const spark = document.createElement("span");
+    spark.className = index % 4 === 0 ? "spark is-dot" : "spark";
+    spark.style.setProperty("--spark-size", `${gsap.utils.random(3, 7)}px`);
+    sparkBurst.append(spark);
+
+    const spread = prefersReducedMotion ? 42 : 94;
+    const lift = prefersReducedMotion ? 34 : 90;
+    const xTravel = direction * gsap.utils.random(42, spread);
+    const yTravel = isLeft
+      ? -gsap.utils.random(22, lift)
+      : gsap.utils.random(22, lift);
+    const spin = direction * gsap.utils.random(24, 120);
+    const duration = prefersReducedMotion ? gsap.utils.random(0.26, 0.38) : gsap.utils.random(0.42, 0.7);
+    const delay = prefersReducedMotion ? index * 0.008 : index * 0.012;
+
+    gsap.set(spark, {
+      left: origin.x,
+      top: origin.y,
+      xPercent: -50,
+      yPercent: -50,
+      x: 0,
+      y: 0,
+      rotate: isLeft ? -26 : 206,
+      scale: 0.3,
+      opacity: 0,
+    });
+
+    sparkTimeline.to(spark, {
+      x: xTravel,
+      y: yTravel,
+      rotate: spin,
+      scale: prefersReducedMotion ? gsap.utils.random(0.7, 1.05) : gsap.utils.random(0.85, 1.45),
+      opacity: prefersReducedMotion ? 0.48 : 1,
+      duration: 0.08,
+      ease: "power2.out",
+    }, delay).to(spark, {
+      x: xTravel + direction * gsap.utils.random(18, 68),
+      y: yTravel + (isLeft ? -gsap.utils.random(8, 44) : gsap.utils.random(8, 44)),
+      scale: 0.12,
+      opacity: 0,
+      duration,
+      ease: "power3.out",
+    }, delay + 0.05);
+  }
 }
 
 function pulseCommitFlash(bucket) {

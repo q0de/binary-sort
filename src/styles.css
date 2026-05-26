@@ -429,6 +429,46 @@ select {
     linear-gradient(218deg, rgba(38, 219, 255, 0.56), transparent 58%);
 }
 
+.spark-burst {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  overflow: visible;
+}
+
+.spark {
+  position: absolute;
+  width: calc(var(--spark-size) * 4.6);
+  height: var(--spark-size);
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.98) 32%, currentColor 72%, transparent);
+  color: #7df1ff;
+  box-shadow:
+    0 0 8px currentColor,
+    0 0 18px rgba(255, 255, 255, 0.5);
+  filter: blur(0.1px);
+  opacity: 0;
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
+.spark.is-dot {
+  width: calc(var(--spark-size) * 1.35);
+  height: calc(var(--spark-size) * 1.35);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.98) 0 30%, currentColor 64%, transparent 72%);
+}
+
+.spark-burst.from-left .spark {
+  color: #5eeaff;
+}
+
+.spark-burst.from-right .spark {
+  color: #ff6dcc;
+}
+
 .bucket {
   --power: 0;
   position: absolute;
