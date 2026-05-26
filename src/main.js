@@ -271,7 +271,9 @@ function showCard(options = {}) {
 
   activeTimeline?.kill();
   clearBucketState();
-  resetOutcome();
+  if (!options.preserveOutcome) {
+    resetOutcome();
+  }
   renderCardContent(current);
   state.locked = true;
 
@@ -741,12 +743,12 @@ function showOutcome(kind) {
     ease: "back.out(4)",
     onComplete: () => {
       gsap.to(outcome, {
-        y: kind === "correct" ? -78 : 82,
-        scale: prefersReducedMotion ? 0.9 : 0.76,
+        y: kind === "correct" ? -132 : 118,
+        scale: prefersReducedMotion ? 0.9 : 0.7,
         opacity: 0,
-        duration: prefersReducedMotion ? 0.28 : 0.58,
-        ease: "power2.out",
-        delay: prefersReducedMotion ? 0.05 : 0.12,
+        duration: prefersReducedMotion ? 0.32 : 0.82,
+        ease: "sine.out",
+        delay: prefersReducedMotion ? 0.06 : 0.18,
         onComplete: () => {
           if (outcome.className === outcomeClass) {
             resetOutcome();
@@ -838,7 +840,7 @@ function nextCard() {
     return;
   }
 
-  showCard({ entrance: true });
+  showCard({ entrance: true, preserveOutcome: true });
 }
 
 function resetOutcome() {
