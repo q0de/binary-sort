@@ -724,8 +724,8 @@ function showOutcome(kind) {
   const outcomeClass = `outcome is-visible is-${kind}`;
   outcome.setAttribute("aria-label", kind === "correct" ? "Correct" : "Wrong");
   outcomeSprite.src = kind === "correct"
-    ? assetPath("images/outcomes/outcome-check-fit.png")
-    : assetPath("images/outcomes/outcome-x-fit.png");
+    ? assetPath("images/outcomes/outcome-check-fit.webp")
+    : assetPath("images/outcomes/outcome-x-fit.webp");
   outcomeSprite.alt = kind === "correct" ? "Correct" : "Wrong";
   outcome.className = outcomeClass;
   gsap.killTweensOf(outcome);
