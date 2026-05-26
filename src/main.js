@@ -719,12 +719,13 @@ function commitChoice(chosenBucket) {
 }
 
 function showOutcome(kind) {
+  const outcomeClass = `outcome is-visible is-${kind}`;
   outcome.setAttribute("aria-label", kind === "correct" ? "Correct" : "Wrong");
   outcomeSprite.src = kind === "correct"
     ? assetPath("images/outcomes/outcome-check-fit.png")
     : assetPath("images/outcomes/outcome-x-fit.png");
   outcomeSprite.alt = kind === "correct" ? "Correct" : "Wrong";
-  outcome.className = `outcome is-visible is-${kind}`;
+  outcome.className = outcomeClass;
   gsap.killTweensOf(outcome);
   gsap.fromTo(outcome, {
     y: 0,
@@ -746,6 +747,11 @@ function showOutcome(kind) {
         duration: prefersReducedMotion ? 0.28 : 0.58,
         ease: "power2.out",
         delay: prefersReducedMotion ? 0.05 : 0.12,
+        onComplete: () => {
+          if (outcome.className === outcomeClass) {
+            resetOutcome();
+          }
+        },
       });
     },
   });
@@ -825,10 +831,6 @@ function nextCard() {
   state.index += 1;
   clearBucketState();
   card.classList.remove("is-special");
-  outcome.className = "outcome";
-  outcome.removeAttribute("aria-label");
-  outcomeSprite.removeAttribute("src");
-  outcomeSprite.alt = "";
 
   if (state.index >= state.deck.length) {
     updateStackVisual(true);
