@@ -20,6 +20,7 @@ const CARD_STYLE_DEFAULT = "aurora-foil";
 const CARD_STYLE_DEFAULT_VERSION = "aurora-foil-png-v1";
 const SPECIAL_CARD_COUNT = 1;
 const GLEAM_CARD_CHANCE = 0.38;
+const ASSET_BASE_URL = import.meta.env.BASE_URL;
 const MAX_VISIBLE_STACK_CARDS = BASE_DECK.length;
 const STACK_BASE_Y = 72;
 const STACK_DRAW_Y = 50;
@@ -129,6 +130,10 @@ function buildRoundDeck() {
 
 function currentCardHasGleam() {
   return Boolean(state.deck[state.index]?.gleam);
+}
+
+function assetPath(path) {
+  return `${ASSET_BASE_URL}${path}`;
 }
 
 function startRound() {
@@ -715,7 +720,9 @@ function commitChoice(chosenBucket) {
 
 function showOutcome(kind) {
   outcome.setAttribute("aria-label", kind === "correct" ? "Correct" : "Wrong");
-  outcomeSprite.src = kind === "correct" ? "/images/outcomes/outcome-check-fit.png" : "/images/outcomes/outcome-x-fit.png";
+  outcomeSprite.src = kind === "correct"
+    ? assetPath("images/outcomes/outcome-check-fit.png")
+    : assetPath("images/outcomes/outcome-x-fit.png");
   outcomeSprite.alt = kind === "correct" ? "Correct" : "Wrong";
   outcome.className = `outcome is-visible is-${kind}`;
   gsap.killTweensOf(outcome);
@@ -894,7 +901,7 @@ async function unlockAudio() {
 async function loadAudioAssets() {
   if (!audioContext) return;
   try {
-    const manifestResponse = await fetch("/audio/sfx-manifest.json", { cache: "no-store" });
+    const manifestResponse = await fetch(assetPath("audio/sfx-manifest.json"), { cache: "no-store" });
     if (!manifestResponse.ok) return;
     const manifest = await manifestResponse.json();
     if (!manifest.enabled || !manifest.files) return;
