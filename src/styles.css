@@ -299,6 +299,33 @@ select {
   padding: 14px 12px max(22px, env(safe-area-inset-bottom));
 }
 
+.gesture-copy {
+  position: absolute;
+  top: clamp(12px, 5svh, 48px);
+  left: 50%;
+  z-index: 5;
+  width: min(82vw, 360px);
+  margin: 0;
+  padding: 7px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  color: rgba(247, 251, 255, 0.86);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+    rgba(5, 8, 20, 0.46);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 12px 30px rgba(0, 0, 0, 0.2),
+    0 0 22px rgba(38, 219, 255, 0.12);
+  font-size: clamp(0.76rem, 2.8vw, 0.9rem);
+  font-weight: 850;
+  line-height: 1.1;
+  text-align: center;
+  text-shadow: 0 0 14px rgba(88, 221, 255, 0.28);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
 .ambient {
   display: none;
   position: absolute;
